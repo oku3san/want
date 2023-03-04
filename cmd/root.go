@@ -5,19 +5,23 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+    "bytes"
     "encoding/json"
     "fmt"
+    "github.com/spf13/cobra"
     "io/ioutil"
     "net/http"
     "os"
-    "strings"
-
-    "github.com/spf13/cobra"
 )
 
 type Message struct {
     Role    string `json:"role"`
     Content string `json:"content"`
+}
+
+type OpenaiRequest struct {
+    Model    string    `json:"model"`
+    Messages []Message `json:"messages"`
 }
 
 var messages []Message
@@ -45,22 +49,20 @@ to quickly create a Cobra application.`,
             Content: "who is batman?",
         })
 
-        requestBody, err := json.Marshal(map[string]interface{}{
-            "messages": messages,
-            "model":    "gpt-3.5-turbo",
-        })
-        if err != nil {
-            fmt.Println(err)
-            return
+        requestBody := OpenaiRequest{
+            Model:    "gpt-3.5-turbo",
+            Messages: messages,
         }
 
-        request, err := http.NewRequest("POST", endpoint, strings.NewReader(string(requestBody)))
+        requestJSON, _ := json.Marshal(requestBody)
+
+        request, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(requestJSON))
         if err != nil {
             fmt.Println(err)
             return
         }
         request.Header.Set("Content-Type", "application/json")
-        request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+        request.Header.Set("Authorization", "Bearer "+apiKey)
 
         client := &http.Client{}
         resp, err := client.Do(request)
